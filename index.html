@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#091b26">
+  <meta name="description" content="Jal Sathi smart water reminder, hydration dashboard, aur daily intake logging ko ek premium mobile-first PWA me laata hai.">
+  <title>Jal Sathi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="night">
+  <div class="ambient-layer">
+    <div class="ambient-orb orb-a"></div>
+    <div class="ambient-orb orb-b"></div>
+    <div class="ambient-grid"></div>
+    <div class="ambient-noise"></div>
+  </div>
+
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-card">
+      <div class="drawer-head">
+        <div>
+          <p class="eyebrow" data-i18n="menuLabel">Quick Controls</p>
+          <h2 data-i18n="menuTitle">Jal menu</h2>
+        </div>
+        <button class="icon-btn" id="closeDrawerBtn" type="button" aria-label="Close menu">×</button>
+      </div>
+      <div class="drawer-grid">
+        <section class="menu-panel">
+          <p class="eyebrow" data-i18n="languageLabel">Language</p>
+          <h3 data-i18n="languageTitle">Hindi aur English</h3>
+          <div class="toggle-row" role="group" aria-label="Language">
+            <button class="mini-toggle" id="langHiBtn" type="button">हिन्दी</button>
+            <button class="mini-toggle" id="langEnBtn" type="button">English</button>
+          </div>
+        </section>
+        <section class="menu-panel">
+          <p class="eyebrow" data-i18n="themeLabel">Theme</p>
+          <h3 data-i18n="themeTitle">Water studio mode</h3>
+          <button class="menu-btn" id="themeBtn" type="button" data-i18n="themeAction">Theme badlo</button>
+        </section>
+        <section class="menu-panel">
+          <p class="eyebrow" data-i18n="installLabel">Install</p>
+          <h3 data-i18n="installTitle">App ko phone par rakho</h3>
+          <button class="menu-btn" id="installBtn" type="button" data-i18n="installAction">Install app</button>
+        </section>
+        <section class="menu-panel">
+          <p class="eyebrow" data-i18n="authLabel">Family login</p>
+          <h3 data-i18n="authTitle">Ek login, poori family</h3>
+          <p class="muted small-copy" id="authStateText" data-i18n="authLoading">Login status load ho raha hai...</p>
+          <button class="menu-btn" id="authBtn" type="button" data-i18n="authSignIn">Login with Google</button>
+        </section>
+        <section class="menu-panel">
+          <p class="eyebrow" data-i18n="reminderLabel">Reminder</p>
+          <h3 data-i18n="reminderTitle">Hourly hydration alert</h3>
+          <label class="field-label" for="reminderTime" data-i18n="reminderField">First reminder time</label>
+          <input id="reminderTime" class="text-input" type="time" value="08:00">
+          <button class="menu-btn" id="saveReminderBtn" type="button" data-i18n="reminderSave">Reminder save karo</button>
+          <p class="muted small-copy" id="reminderStatus"></p>
+        </section>
+        <section class="menu-panel menu-panel-wide">
+          <p class="eyebrow" data-i18n="pagesLabel">Pages</p>
+          <h3 data-i18n="pagesTitle">Family links aur info</h3>
+          <div class="menu-links">
+            <a href="about.html" data-i18n="pageAbout">About</a>
+            <a href="resources.html" data-i18n="pageResources">Resources</a>
+            <a href="contact.html" data-i18n="pageContact">Contact</a>
+            <a href="privacy-policy.html" data-i18n="pagePrivacy">Privacy Policy</a>
+            <a href="terms.html" data-i18n="pageTerms">Terms &amp; Conditions</a>
+            <a href="https://snakeeye-sudo.github.io/Aapka-Sathi/" data-i18n="pageFamily">Aapka-Sathi Family</a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </aside>
+
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-top">
+        <div class="brand-wrap">
+          <img src="logo.png" alt="Jal Sathi logo" class="brand-logo">
+          <div>
+            <p class="hero-tag" data-i18n="brandTag">Hydration rhythm desk</p>
+            <h1>Jal Sathi</h1>
+          </div>
+        </div>
+        <button class="hamburger-btn" id="openDrawerBtn" type="button" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+
+      <div class="hero-grid">
+        <section class="hero-copy">
+          <a class="family-chip" href="https://snakeeye-sudo.github.io/Aapka-Sathi/" data-i18n="familyChip">Aapka-Sathi family ka hissa</a>
+          <h2 class="hero-headline" data-i18n="heroHeadline">Pani peene ki aadat ko schedule, streak, aur calm dashboard ke saath easy banao.</h2>
+          <p class="hero-text" data-i18n="heroText">Official baseline guidance ko simple daily goal me badal kar app aapko wake se sleep tak pace maintain karne me help karta hai.</p>
+          <div class="hero-badges" id="heroBadges"></div>
+        </section>
+
+        <section class="hero-side">
+          <div class="metric-card">
+            <p class="eyebrow" data-i18n="goalLabel">Today's goal</p>
+            <h3 id="goalHeadline">--</h3>
+            <strong id="goalValue">--</strong>
+            <p class="muted" id="goalMeta">--</p>
+          </div>
+          <div class="metric-card">
+            <p class="eyebrow" data-i18n="streakLabel">Hydration streak</p>
+            <h3 id="streakHeadline">--</h3>
+            <p class="muted" id="streakMeta">--</p>
+          </div>
+        </section>
+      </div>
+    </header>
+
+    <main class="app-grid">
+      <section class="panel panel-main">
+        <div class="tabbar" id="modeTabs" role="tablist" aria-label="Hydration modes"></div>
+
+        <section class="tool-view active" id="view-dashboard">
+          <div class="utility-grid">
+            <article class="utility-card">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow" data-i18n="dashboardLabel">Today's hydration</p>
+                  <h3 data-i18n="dashboardTitle">Live progress orb</h3>
+                </div>
+              </div>
+              <div class="hydration-ring" id="hydrationRing">
+                <div class="hydration-core">
+                  <strong id="consumedValue">0 ml</strong>
+                  <span id="remainingValue">--</span>
+                </div>
+              </div>
+              <div class="detail-grid" id="dailyStats"></div>
+            </article>
+
+            <article class="utility-card compact-card">
+              <div class="section-head tight">
+                <div>
+                  <p class="eyebrow" data-i18n="quickLogLabel">Quick log</p>
+                  <h3 data-i18n="quickLogTitle">Ek tap me add karo</h3>
+                </div>
+              </div>
+              <div class="quick-log-grid">
+                <button class="pad-btn quick-btn" type="button" data-add-water="150">+150 ml</button>
+                <button class="pad-btn quick-btn" type="button" data-add-water="250">+250 ml</button>
+                <button class="pad-btn quick-btn" type="button" data-add-water="350">+350 ml</button>
+                <button class="pad-btn quick-btn" type="button" data-add-water="500">+500 ml</button>
+              </div>
+              <button class="menu-btn age-btn" id="undoLogBtn" type="button" data-i18n="undoLast">Undo last</button>
+            </article>
+          </div>
+
+          <article class="utility-card banner-card hidden" id="catchupBanner">
+            <div class="section-head tight">
+              <div>
+                <p class="eyebrow" data-i18n="catchupLabel">Catch-up</p>
+                <h3 data-i18n="catchupTitle">Aaj se hydration board continue karein?</h3>
+              </div>
+              <button class="ghost-chip" id="dismissCatchupBtn" type="button" data-i18n="dismiss">Dismiss</button>
+            </div>
+            <p class="muted" id="catchupMeta"></p>
+          </article>
+
+          <article class="utility-card">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow" data-i18n="timelineLabel">Reminder timeline</p>
+                <h3 data-i18n="timelineTitle">Wake se sleep tak plan</h3>
+              </div>
+            </div>
+            <div class="timeline-list" id="timelineList"></div>
+          </article>
+        </section>
+
+        <section class="tool-view" id="view-plan">
+          <div class="utility-grid">
+            <article class="utility-card">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow" data-i18n="planLabel">Personal plan</p>
+                  <h3 data-i18n="planTitle">Goal aur reminder pace set karo</h3>
+                </div>
+              </div>
+              <label class="field-label" for="sexSelect" data-i18n="sexLabel">Profile</label>
+              <select id="sexSelect" class="text-input">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+
+              <div class="pair-grid">
+                <div>
+                  <label class="field-label" for="wakeInput" data-i18n="wakeLabel">Wake time</label>
+                  <input id="wakeInput" class="text-input" type="time">
+                </div>
+                <div>
+                  <label class="field-label" for="sleepInput" data-i18n="sleepLabel">Sleep time</label>
+                  <input id="sleepInput" class="text-input" type="time">
+                </div>
+              </div>
+
+              <div class="pair-grid">
+                <div>
+                  <label class="field-label" for="intervalSelect" data-i18n="intervalLabel">Reminder interval</label>
+                  <select id="intervalSelect" class="text-input">
+                    <option value="1">1 hour</option>
+                    <option value="2">2 hours</option>
+                    <option value="3">3 hours</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field-label" for="cupInput" data-i18n="cupLabel">Default cup size</label>
+                  <input id="cupInput" class="text-input" type="number" min="100" step="50" value="250">
+                </div>
+              </div>
+
+              <button class="menu-btn age-btn" id="savePlanBtn" type="button" data-i18n="savePlan">Save plan</button>
+            </article>
+
+            <article class="utility-card compact-card">
+              <p class="eyebrow" data-i18n="guidelineLabel">Guideline</p>
+              <h3 data-i18n="guidelineTitle">Official baseline</h3>
+              <p class="muted" id="guidelineText"></p>
+              <p class="muted small-copy" data-i18n="guidelineNote">This is a daily wellness baseline, not medical advice.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="tool-view" id="view-benefits">
+          <div class="utility-grid">
+            <article class="utility-card">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow" data-i18n="benefitLabel">Benefits</p>
+                  <h3 data-i18n="benefitTitle">Pani pace maintain karne ka fayda</h3>
+                </div>
+              </div>
+              <div class="detail-grid" id="benefitGrid"></div>
+            </article>
+
+            <article class="utility-card compact-card">
+              <p class="eyebrow" data-i18n="cloudLabel">Cloud sync</p>
+              <h3 id="cloudHeadline">Family sync ready</h3>
+              <p class="muted" id="cloudMeta"></p>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <aside class="panel panel-side">
+        <section class="side-section">
+          <div class="section-head tight">
+            <div>
+              <p class="eyebrow" data-i18n="logLabel">Today's log</p>
+              <h3 data-i18n="logTitle">Recent sips</h3>
+            </div>
+          </div>
+          <div class="history-list" id="logList"></div>
+        </section>
+
+        <section class="side-section">
+          <div class="section-head tight">
+            <div>
+              <p class="eyebrow" data-i18n="profileLabel">Profile summary</p>
+              <h3 data-i18n="profileTitle">Daily rhythm</h3>
+            </div>
+          </div>
+          <div class="stack-card" id="profileSummary"></div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <img src="logo.png" alt="Jal Sathi logo">
+        <div>
+          <strong>Jal Sathi</strong>
+          <p data-i18n="footerNote">Pani peene ko routine se joy me badalne ke liye.</p>
+        </div>
+      </div>
+      <p class="footer-credit">Crafted and developed by <strong>Er. Sangam Krishna</strong>.</p>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+  <script defer src="notification-prompt.js"></script>
+  <script defer src="sathi-navigator.js"></script>
+</body>
+</html>
+
+

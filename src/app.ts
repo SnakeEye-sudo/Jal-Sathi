@@ -17,7 +17,7 @@
     cupMl: number;
   };
 
-  type LogEntry = { time: string; amount: number };
+  type LogEntry = { time: string; amount: number; timestamp?: string };
   type DailyLog = { date: string; consumedMl: number; entries: LogEntry[]; notifiedSlots: string[] };
   type LogsMap = Record<string, DailyLog>;
 
@@ -33,7 +33,8 @@
     logs: "jal-logs",
     cloudSyncedAt: "jal-cloud-synced-at",
     lastOpen: "jal-last-open",
-    catchupSeen: "jal-catchup-seen"
+    catchupSeen: "jal-catchup-seen",
+    reminderLastPing: "jal-reminder-last-ping"
   } as const;
 
   const FIREBASE_CONFIG = {
@@ -567,7 +568,8 @@
   function addWater(amount: number): void {
     const log = ensureTodayLog();
     log.consumedMl += amount;
-    log.entries.push({ time: nowTime(), amount });
+    log.entries.push({ time: nowTime(), amount, timestamp: new Date().toISOString() });
+    localStorage.removeItem(STORAGE.reminderLastPing);
     saveLocalState();
     renderEverything();
     queueCloudSave();
@@ -698,6 +700,19 @@
     }
   }
 
+  function latestDrinkDate(log: DailyLog): Date | null {
+    const latest = log.entries[log.entries.length - 1];
+    if (!latest) return null;
+    if (latest.timestamp) {
+      const parsed = new Date(latest.timestamp);
+      if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
+    const fallback = new Date();
+    const [hours, minutes] = latest.time.split(":").map((part) => Number(part));
+    fallback.setHours(hours || 0, minutes || 0, 0, 0);
+    return fallback;
+  }
+
   async function maybeNotify(): Promise<void> {
     if (localStorage.getItem(STORAGE.reminderEnabled) !== "true") return;
     if (!("Notification" in window) || Notification.permission !== "granted") return;
@@ -705,17 +720,36 @@
 
     const log = ensureTodayLog();
     const currentMinutes = parseTime(nowTime());
-    const dueSlot = scheduledSlots().find((slot) => slot <= currentMinutes && !log.notifiedSlots.includes(String(slot)));
-    if (!dueSlot) return;
+    const currentSlot = [...scheduledSlots()].reverse().find((slot) => slot <= currentMinutes);
+    if (typeof currentSlot !== "number") return;
 
-    log.notifiedSlots.push(String(dueSlot));
-    saveLocalState();
+    const latestDrink = latestDrinkDate(log);
+    const latestDrinkMinutes = latestDrink ? latestDrink.getHours() * 60 + latestDrink.getMinutes() : -1;
+    if (latestDrinkMinutes >= currentSlot) {
+      localStorage.removeItem(STORAGE.reminderLastPing);
+      return;
+    }
+
+    const lastPing = localStorage.getItem(STORAGE.reminderLastPing);
+    if (lastPing) {
+      const elapsedMinutes = (Date.now() - new Date(lastPing).getTime()) / 60000;
+      if (elapsedMinutes < 10) return;
+    }
+
+    if (!log.notifiedSlots.includes(String(currentSlot))) {
+      log.notifiedSlots.push(String(currentSlot));
+      saveLocalState();
+    }
+
     const registration = await navigator.serviceWorker.getRegistration();
     if (registration) {
       await registration.showNotification("Jal Sathi", {
-        body: state.lang === "hi" ? "Hydration break. Ek glass pani pee lo." : "Hydration break. Drink a glass of water."
+        body: state.lang === "hi"
+          ? "Pani peene ka time ho gaya. Jab tak sip log nahi karte, Jal Sathi yaad dilata rahega."
+          : "It is time to drink water. Jal Sathi will keep reminding you until you log a sip."
       });
     }
+    localStorage.setItem(STORAGE.reminderLastPing, new Date().toISOString());
     beep();
     renderDashboard();
   }
@@ -756,13 +790,25 @@
   }
 
   function bindEvents(): void {
-    $("openDrawerBtn").addEventListener("click", () => {
+    const openDrawer = () => {
       $("drawer").classList.add("open");
       $("drawer").setAttribute("aria-hidden", "false");
-    });
-    $("closeDrawerBtn").addEventListener("click", () => {
+    };
+    const closeDrawer = () => {
       $("drawer").classList.remove("open");
       $("drawer").setAttribute("aria-hidden", "true");
+    };
+
+    $("openDrawerBtn").addEventListener("click", openDrawer);
+    $("closeDrawerBtn").addEventListener("click", closeDrawer);
+    $("drawer").addEventListener("click", (event) => {
+      if (event.target === $("drawer")) closeDrawer();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeDrawer();
+    });
+    document.querySelectorAll<HTMLAnchorElement>("#drawer a").forEach((link) => {
+      link.addEventListener("click", closeDrawer);
     });
     $("themeBtn").addEventListener("click", () => setTheme(state.theme === "night" ? "dawn" : "night"));
     $("langHiBtn").addEventListener("click", () => setLanguage("hi"));

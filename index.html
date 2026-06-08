@@ -1,295 +1,466 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#091b26">
-  <meta name="description" content="Jal Sathi smart water reminder, hydration dashboard, aur daily intake logging ko ek premium mobile-first PWA me laata hai.">
-  <title>Jal Sathi</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#061a2e">
+<meta name="description" content="Jal Sathi – Hydration tracker with daily water goals and reminders">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Jal Sathi 💧</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    --bg: #061a2e;
+    --surface: #0c2540;
+    --surface2: #103050;
+    --border: rgba(56,189,248,0.18);
+    --accent: #22d3ee;
+    --accent2: #67e8f9;
+    --blue: #38bdf8;
+    --text: #ecfeff;
+    --muted: #6aa5be;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  [data-theme="light"] { --bg: #f0fdff; --surface: #fff; --surface2: #cffafe; --text: #083344; --muted: #6b7280; --border: rgba(34,211,238,0.25); }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); display: flex; flex-direction: column; user-select: none; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .topbar-brand { display: flex; align-items: center; gap: 10px; }
+  .topbar-title { font-size: 18px; font-weight: 700; }
+  .topbar-sub { font-size: 11px; color: var(--muted); }
+  .icon-btn { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  .main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 80px; }
+
+  /* WATER GAUGE */
+  .gauge-section { padding: 28px 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .water-tank {
+    position: relative;
+    width: min(75vw, 220px);
+    height: min(75vw, 220px);
+    border-radius: 50%;
+    border: 3px solid rgba(34,211,238,0.3);
+    overflow: hidden;
+    background: var(--surface2);
+    box-shadow: 0 0 40px rgba(34,211,238,0.2), inset 0 0 40px rgba(0,0,0,0.3);
+  }
+  .water-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(180deg, rgba(34,211,238,0.8) 0%, rgba(6,26,46,0.9) 100%);
+    transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .water-fill::before {
+    content: '';
+    position: absolute;
+    top: -8px; left: -20%;
+    width: 140%;
+    height: 20px;
+    background: rgba(34,211,238,0.6);
+    border-radius: 50%;
+    animation: wave 3s ease-in-out infinite;
+  }
+  @keyframes wave {
+    0%, 100% { transform: translateX(0) scaleY(1); }
+    50% { transform: translateX(-10%) scaleY(1.2); }
+  }
+  .tank-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 2;
+  }
+  .tank-percent { font-size: 36px; font-weight: 900; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+  .tank-ml { font-size: 14px; color: rgba(255,255,255,0.8); font-weight: 600; }
+  .tank-goal { font-size: 11px; color: rgba(255,255,255,0.6); }
+
+  /* QUICK ADD */
+  .quick-add { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 380px; width: 100%; }
+  .add-btn {
+    flex: 1; min-width: 80px;
+    padding: 14px 10px;
+    border-radius: 18px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font);
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .add-btn .icon { font-size: 22px; }
+  .add-btn:active { transform: scale(0.93); }
+  .add-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #061a2e;
+    box-shadow: 0 4px 16px rgba(34,211,238,0.35);
+  }
+
+  /* CUSTOM ADD */
+  .custom-add {
+    display: flex; gap: 10px; max-width: 380px; width: 100%; align-items: center;
+  }
+  .ml-input {
+    flex: 1; padding: 14px 16px; border-radius: 16px;
+    border: 2px solid var(--border); background: var(--surface);
+    color: var(--text); font-size: 16px; font-family: var(--font); outline: none;
+  }
+  .ml-input:focus { border-color: var(--accent); }
+  .custom-add-btn {
+    padding: 14px 20px; border-radius: 16px; border: none;
+    background: var(--accent); color: #061a2e; font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: var(--font); white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .custom-add-btn:active { transform: scale(0.96); }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 20px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 12px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 800; color: var(--accent2); }
+  .stat-key { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.3; }
+
+  /* LOGS */
+  .log-list { padding: 0 20px; display: flex; flex-direction: column; gap: 8px; }
+  .log-item { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .log-icon { font-size: 22px; }
+  .log-info { flex: 1; }
+  .log-amount { font-size: 16px; font-weight: 700; color: var(--accent2); }
+  .log-time { font-size: 12px; color: var(--muted); }
+  .log-del { padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.1); color: #f87171; font-size: 12px; cursor: pointer; }
+
+  /* SETTINGS */
+  .settings-section { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .setting-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px; }
+  .setting-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+  .setting-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .setting-label { flex: 1; font-size: 14px; }
+  .setting-val { font-size: 14px; font-weight: 700; color: var(--accent2); min-width: 60px; text-align: right; }
+  .range-input { flex: 1; accent-color: var(--accent); }
+  .goal-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .goal-preset { padding: 8px 14px; border-radius: 50px; border: 1.5px solid var(--border); background: var(--surface2); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: all 0.2s; }
+  .goal-preset.active { background: var(--accent); border-color: var(--accent); color: #061a2e; }
+
+  .section-header { padding: 20px 20px 8px; font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .empty-state { text-align: center; padding: 24px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-around; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 20px; border-radius: 12px; cursor: pointer; border: none; background: none; color: var(--muted); font-family: var(--font); transition: all 0.2s; }
+  .nav-item.active { color: var(--accent); }
+  .nav-item span { font-size: 10px; font-weight: 600; }
+  .nav-item svg { width: 22px; height: 22px; }
+  .view { display: none; }
+  .view.active { display: block; }
+</style>
 </head>
-<body data-theme="night">
-  <div class="ambient-layer">
-    <div class="ambient-orb orb-a"></div>
-    <div class="ambient-orb orb-b"></div>
-    <div class="ambient-grid"></div>
-    <div class="ambient-noise"></div>
-  </div>
+<body data-theme="dark">
 
-  <aside class="drawer" id="drawer" aria-hidden="true">
-    <div class="drawer-card">
-      <div class="drawer-head">
-        <div>
-          <p class="eyebrow" data-i18n="menuLabel">Quick Controls</p>
-          <h2 data-i18n="menuTitle">Jal menu</h2>
-        </div>
-        <button class="icon-btn" id="closeDrawerBtn" type="button" aria-label="Close menu">×</button>
-      </div>
-      <div class="drawer-grid">
-        <section class="menu-panel">
-          <p class="eyebrow" data-i18n="languageLabel">Language</p>
-          <h3 data-i18n="languageTitle">Hindi aur English</h3>
-          <div class="toggle-row" role="group" aria-label="Language">
-            <button class="mini-toggle" id="langHiBtn" type="button">हिन्दी</button>
-            <button class="mini-toggle" id="langEnBtn" type="button">English</button>
-          </div>
-        </section>
-        <section class="menu-panel">
-          <p class="eyebrow" data-i18n="themeLabel">Theme</p>
-          <h3 data-i18n="themeTitle">Water studio mode</h3>
-          <button class="menu-btn" id="themeBtn" type="button" data-i18n="themeAction">Theme badlo</button>
-        </section>
-        <section class="menu-panel">
-          <p class="eyebrow" data-i18n="installLabel">Install</p>
-          <h3 data-i18n="installTitle">App ko phone par rakho</h3>
-          <button class="menu-btn" id="installBtn" type="button" data-i18n="installAction">Install app</button>
-        </section>
-        <section class="menu-panel">
-          <p class="eyebrow" data-i18n="authLabel">Family login</p>
-          <h3 data-i18n="authTitle">Ek login, poori family</h3>
-          <p class="muted small-copy" id="authStateText" data-i18n="authLoading">Login status load ho raha hai...</p>
-          <button class="menu-btn" id="authBtn" type="button" data-i18n="authSignIn">Login with Google</button>
-        </section>
-        <section class="menu-panel">
-          <p class="eyebrow" data-i18n="reminderLabel">Reminder</p>
-          <h3 data-i18n="reminderTitle">Hourly hydration alert</h3>
-          <label class="field-label" for="reminderTime" data-i18n="reminderField">First reminder time</label>
-          <input id="reminderTime" class="text-input" type="time" value="08:00">
-          <button class="menu-btn" id="saveReminderBtn" type="button" data-i18n="reminderSave">Reminder save karo</button>
-          <p class="muted small-copy" id="reminderStatus"></p>
-        </section>
-        <section class="menu-panel menu-panel-wide">
-          <p class="eyebrow" data-i18n="pagesLabel">Pages</p>
-          <h3 data-i18n="pagesTitle">Family links aur info</h3>
-          <div class="menu-links">
-            <a href="about.html" data-i18n="pageAbout">About</a>
-            <a href="resources.html" data-i18n="pageResources">Resources</a>
-            <a href="contact.html" data-i18n="pageContact">Contact</a>
-            <a href="privacy-policy.html" data-i18n="pagePrivacy">Privacy Policy</a>
-            <a href="terms.html" data-i18n="pageTerms">Terms &amp; Conditions</a>
-            <a href="https://snakeeye-sudo.github.io/Aapka-Sathi/" data-i18n="pageFamily">Aapka-Sathi Family</a>
-          </div>
-        </section>
-      </div>
+<div class="topbar">
+  <div class="topbar-brand">
+    <span style="font-size:22px">💧</span>
+    <div>
+      <div class="topbar-title">Jal Sathi</div>
+      <div class="topbar-sub">Hydration Tracker</div>
     </div>
-  </aside>
+  </div>
+  <button class="icon-btn" id="themeBtn">🌙</button>
+</div>
 
-  <div class="page-shell">
-    <header class="hero">
-      <div class="hero-top">
-        <div class="brand-wrap">
-          <img src="logo.png" alt="Jal Sathi logo" class="brand-logo">
-          <div>
-            <p class="hero-tag" data-i18n="brandTag">Hydration rhythm desk</p>
-            <h1>Jal Sathi</h1>
-          </div>
+<div class="main">
+
+  <!-- HOME VIEW -->
+  <div class="view active" id="view-home">
+    <div class="gauge-section">
+      <!-- Water Tank -->
+      <div class="water-tank">
+        <div class="water-fill" id="waterFill" style="height:0%"></div>
+        <div class="tank-center">
+          <div class="tank-percent" id="tankPercent">0%</div>
+          <div class="tank-ml" id="tankMl">0 ml</div>
+          <div class="tank-goal" id="tankGoal">/ 2500 ml</div>
         </div>
-        <button class="hamburger-btn" id="openDrawerBtn" type="button" aria-label="Open menu">
-          <span></span><span></span><span></span>
+      </div>
+
+      <!-- Quick Add -->
+      <div class="quick-add">
+        <button class="add-btn" onclick="addWater(100)">
+          <span class="icon">☕</span>
+          <span>100ml</span>
+          <span style="font-size:10px;color:var(--muted)">Chai/Coffee</span>
+        </button>
+        <button class="add-btn primary" onclick="addWater(250)">
+          <span class="icon">🥛</span>
+          <span>250ml</span>
+          <span style="font-size:10px">Glass</span>
+        </button>
+        <button class="add-btn" onclick="addWater(350)">
+          <span class="icon">🍶</span>
+          <span>350ml</span>
+          <span style="font-size:10px;color:var(--muted)">Bottle</span>
+        </button>
+        <button class="add-btn" onclick="addWater(500)">
+          <span class="icon">🧴</span>
+          <span>500ml</span>
+          <span style="font-size:10px;color:var(--muted)">Big Bottle</span>
         </button>
       </div>
 
-      <div class="hero-grid">
-        <section class="hero-copy">
-          <a class="family-chip" href="https://snakeeye-sudo.github.io/Aapka-Sathi/" data-i18n="familyChip">Aapka-Sathi family ka hissa</a>
-          <h2 class="hero-headline" data-i18n="heroHeadline">Pani peene ki aadat ko schedule, streak, aur calm dashboard ke saath easy banao.</h2>
-          <p class="hero-text" data-i18n="heroText">Official baseline guidance ko simple daily goal me badal kar app aapko wake se sleep tak pace maintain karne me help karta hai.</p>
-          <div class="hero-badges" id="heroBadges"></div>
-        </section>
-
-        <section class="hero-side">
-          <div class="metric-card">
-            <p class="eyebrow" data-i18n="goalLabel">Today's goal</p>
-            <h3 id="goalHeadline">--</h3>
-            <strong id="goalValue">--</strong>
-            <p class="muted" id="goalMeta">--</p>
-          </div>
-          <div class="metric-card">
-            <p class="eyebrow" data-i18n="streakLabel">Hydration streak</p>
-            <h3 id="streakHeadline">--</h3>
-            <p class="muted" id="streakMeta">--</p>
-          </div>
-        </section>
+      <!-- Custom Add -->
+      <div class="custom-add">
+        <input class="ml-input" id="customMl" type="number" placeholder="Custom amount (ml)" min="50" max="2000">
+        <button class="custom-add-btn" onclick="addCustom()">+ Dalo</button>
       </div>
-    </header>
+    </div>
 
-    <main class="app-grid">
-      <section class="panel panel-main">
-        <div class="tabbar" id="modeTabs" role="tablist" aria-label="Hydration modes"></div>
+    <!-- Stats -->
+    <div class="section-header">Aaj ki stats</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-val" id="statTotal">0ml</div>
+        <div class="stat-key">Total peya</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statRemain">0ml</div>
+        <div class="stat-key">Baaki hai</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statStreak">0🔥</div>
+        <div class="stat-key">Day streak</div>
+      </div>
+    </div>
 
-        <section class="tool-view active" id="view-dashboard">
-          <div class="utility-grid">
-            <article class="utility-card">
-              <div class="section-head">
-                <div>
-                  <p class="eyebrow" data-i18n="dashboardLabel">Today's hydration</p>
-                  <h3 data-i18n="dashboardTitle">Live progress orb</h3>
-                </div>
-              </div>
-              <div class="hydration-ring" id="hydrationRing">
-                <div class="hydration-core">
-                  <strong id="consumedValue">0 ml</strong>
-                  <span id="remainingValue">--</span>
-                </div>
-              </div>
-              <div class="detail-grid" id="dailyStats"></div>
-            </article>
+    <!-- Today's log -->
+    <div class="section-header">Aaj ke logs</div>
+    <div class="log-list" id="logList">
+      <div class="empty-state">💧<br>Abhi kuch nahi piya.<br>Pehla glass shuru karo!</div>
+    </div>
+  </div>
 
-            <article class="utility-card compact-card">
-              <div class="section-head tight">
-                <div>
-                  <p class="eyebrow" data-i18n="quickLogLabel">Quick log</p>
-                  <h3 data-i18n="quickLogTitle">Ek tap me add karo</h3>
-                </div>
-              </div>
-              <div class="quick-log-grid">
-                <button class="pad-btn quick-btn" type="button" data-add-water="150">+150 ml</button>
-                <button class="pad-btn quick-btn" type="button" data-add-water="250">+250 ml</button>
-                <button class="pad-btn quick-btn" type="button" data-add-water="350">+350 ml</button>
-                <button class="pad-btn quick-btn" type="button" data-add-water="500">+500 ml</button>
-              </div>
-              <button class="menu-btn age-btn" id="undoLogBtn" type="button" data-i18n="undoLast">Undo last</button>
-            </article>
-          </div>
-
-          <article class="utility-card banner-card hidden" id="catchupBanner">
-            <div class="section-head tight">
-              <div>
-                <p class="eyebrow" data-i18n="catchupLabel">Catch-up</p>
-                <h3 data-i18n="catchupTitle">Aaj se hydration board continue karein?</h3>
-              </div>
-              <button class="ghost-chip" id="dismissCatchupBtn" type="button" data-i18n="dismiss">Dismiss</button>
-            </div>
-            <p class="muted" id="catchupMeta"></p>
-          </article>
-
-          <article class="utility-card">
-            <div class="section-head">
-              <div>
-                <p class="eyebrow" data-i18n="timelineLabel">Reminder timeline</p>
-                <h3 data-i18n="timelineTitle">Wake se sleep tak plan</h3>
-              </div>
-            </div>
-            <div class="timeline-list" id="timelineList"></div>
-          </article>
-        </section>
-
-        <section class="tool-view" id="view-plan">
-          <div class="utility-grid">
-            <article class="utility-card">
-              <div class="section-head">
-                <div>
-                  <p class="eyebrow" data-i18n="planLabel">Personal plan</p>
-                  <h3 data-i18n="planTitle">Goal aur reminder pace set karo</h3>
-                </div>
-              </div>
-              <label class="field-label" for="sexSelect" data-i18n="sexLabel">Profile</label>
-              <select id="sexSelect" class="text-input">
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-              </select>
-
-              <div class="pair-grid">
-                <div>
-                  <label class="field-label" for="wakeInput" data-i18n="wakeLabel">Wake time</label>
-                  <input id="wakeInput" class="text-input" type="time">
-                </div>
-                <div>
-                  <label class="field-label" for="sleepInput" data-i18n="sleepLabel">Sleep time</label>
-                  <input id="sleepInput" class="text-input" type="time">
-                </div>
-              </div>
-
-              <div class="pair-grid">
-                <div>
-                  <label class="field-label" for="intervalSelect" data-i18n="intervalLabel">Reminder interval</label>
-                  <select id="intervalSelect" class="text-input">
-                    <option value="1">1 hour</option>
-                    <option value="2">2 hours</option>
-                    <option value="3">3 hours</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="field-label" for="cupInput" data-i18n="cupLabel">Default cup size</label>
-                  <input id="cupInput" class="text-input" type="number" min="100" step="50" value="250">
-                </div>
-              </div>
-
-              <button class="menu-btn age-btn" id="savePlanBtn" type="button" data-i18n="savePlan">Save plan</button>
-            </article>
-
-            <article class="utility-card compact-card">
-              <p class="eyebrow" data-i18n="guidelineLabel">Guideline</p>
-              <h3 data-i18n="guidelineTitle">Official baseline</h3>
-              <p class="muted" id="guidelineText"></p>
-              <p class="muted small-copy" data-i18n="guidelineNote">This is a daily wellness baseline, not medical advice.</p>
-            </article>
-          </div>
-        </section>
-
-        <section class="tool-view" id="view-benefits">
-          <div class="utility-grid">
-            <article class="utility-card">
-              <div class="section-head">
-                <div>
-                  <p class="eyebrow" data-i18n="benefitLabel">Benefits</p>
-                  <h3 data-i18n="benefitTitle">Pani pace maintain karne ka fayda</h3>
-                </div>
-              </div>
-              <div class="detail-grid" id="benefitGrid"></div>
-            </article>
-
-            <article class="utility-card compact-card">
-              <p class="eyebrow" data-i18n="cloudLabel">Cloud sync</p>
-              <h3 id="cloudHeadline">Family sync ready</h3>
-              <p class="muted" id="cloudMeta"></p>
-            </article>
-          </div>
-        </section>
-      </section>
-
-      <aside class="panel panel-side">
-        <section class="side-section">
-          <div class="section-head tight">
-            <div>
-              <p class="eyebrow" data-i18n="logLabel">Today's log</p>
-              <h3 data-i18n="logTitle">Recent sips</h3>
-            </div>
-          </div>
-          <div class="history-list" id="logList"></div>
-        </section>
-
-        <section class="side-section">
-          <div class="section-head tight">
-            <div>
-              <p class="eyebrow" data-i18n="profileLabel">Profile summary</p>
-              <h3 data-i18n="profileTitle">Daily rhythm</h3>
-            </div>
-          </div>
-          <div class="stack-card" id="profileSummary"></div>
-        </section>
-      </aside>
-    </main>
-
-    <footer class="site-footer">
-      <div class="footer-brand">
-        <img src="logo.png" alt="Jal Sathi logo">
-        <div>
-          <strong>Jal Sathi</strong>
-          <p data-i18n="footerNote">Pani peene ko routine se joy me badalne ke liye.</p>
+  <!-- SETTINGS VIEW -->
+  <div class="view" id="view-settings">
+    <div class="settings-section">
+      <div class="setting-card">
+        <div class="setting-title">💦 Daily Goal</div>
+        <div class="setting-row">
+          <span class="setting-label">Goal (ml)</span>
+          <span class="setting-val" id="goalDisplay">2500 ml</span>
+        </div>
+        <input class="range-input" type="range" id="goalSlider" min="1000" max="5000" step="250" value="2500" oninput="updateGoal(this.value)">
+        <div class="goal-presets">
+          <button class="goal-preset" onclick="setGoal(1500)">1500ml</button>
+          <button class="goal-preset" onclick="setGoal(2000)">2000ml</button>
+          <button class="goal-preset active" onclick="setGoal(2500)">2500ml</button>
+          <button class="goal-preset" onclick="setGoal(3000)">3000ml</button>
+          <button class="goal-preset" onclick="setGoal(4000)">4000ml</button>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6">
+          💡 WHO ke anusar: Aurton ke liye ~2.2L, Mardon ke liye ~3L daily intake ideal hai. Active log ke liye aur zyada.
         </div>
       </div>
-      <p class="footer-credit">Crafted and developed by <strong>Er. Sangam Krishna</strong>.</p>
-    </footer>
+
+      <div class="setting-card">
+        <div class="setting-title">📊 Hydration Stats</div>
+        <div id="weekStats" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-title">🗑️ Data</div>
+        <button onclick="resetToday()" style="width:100%;padding:14px;border-radius:14px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);color:#f87171;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)">
+          Aaj ka data reset karo
+        </button>
+      </div>
+    </div>
   </div>
-  <script src="app.js"></script>
-  <script defer src="notification-prompt.js"></script>
+
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-item active" data-view="home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z"/></svg>
+    <span>Today</span>
+  </button>
+  <button class="nav-item" data-view="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    <span>Settings</span>
+  </button>
+</nav>
+
+<script>
+const STORAGE_KEY = 'jal-v3';
+const CONTAINER_ICONS = { 100:'☕', 150:'🫖', 200:'🥛', 250:'🥛', 300:'🍵', 350:'🍶', 500:'🧴', 750:'🏺', 1000:'🫙' };
+
+let state = load();
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const today = new Date().toDateString();
+    if (d.date !== today) {
+      // New day
+      const history = d.history || [];
+      if (d.date && d.total > 0) {
+        history.unshift({ date: d.date, total: d.total, goal: d.goal || 2500 });
+        if (history.length > 7) history.pop();
+      }
+      return { date: today, total: 0, logs: [], goal: d.goal || 2500, streak: calcStreak(d, history), history };
+    }
+    return { ...{ date: today, total: 0, logs: [], goal: 2500, streak: 0, history: [] }, ...d };
+  } catch { return { date: new Date().toDateString(), total: 0, logs: [], goal: 2500, streak: 0, history: [] }; }
+}
+
+function calcStreak(prev, history) {
+  if (!prev.date) return 0;
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (prev.date === yesterday && prev.total >= (prev.goal || 2500)) {
+    return (prev.streak || 0) + 1;
+  }
+  return (prev.total >= (prev.goal || 2500)) ? (prev.streak || 1) : 0;
+}
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+function addWater(ml) {
+  state.total += ml;
+  state.logs.unshift({ ml, time: new Date().toLocaleTimeString('hi-IN', { hour: '2-digit', minute: '2-digit' }), ts: Date.now() });
+  save();
+  updateUI();
+  animateSplash();
+}
+
+function addCustom() {
+  const ml = parseInt(document.getElementById('customMl').value);
+  if (!ml || ml < 10) return;
+  addWater(ml);
+  document.getElementById('customMl').value = '';
+}
+
+function animateSplash() {
+  const tank = document.querySelector('.water-tank');
+  tank.style.transform = 'scale(1.05)';
+  setTimeout(() => { tank.style.transform = ''; tank.style.transition = 'transform 0.3s'; }, 200);
+}
+
+function updateUI() {
+  const pct = Math.min(state.total / state.goal * 100, 100);
+  document.getElementById('waterFill').style.height = pct + '%';
+  document.getElementById('tankPercent').textContent = Math.round(pct) + '%';
+  document.getElementById('tankMl').textContent = state.total + ' ml';
+  document.getElementById('tankGoal').textContent = '/ ' + state.goal + ' ml';
+  document.getElementById('statTotal').textContent = state.total + 'ml';
+  document.getElementById('statRemain').textContent = Math.max(0, state.goal - state.total) + 'ml';
+  document.getElementById('statStreak').textContent = state.streak + '🔥';
+  renderLogs();
+}
+
+function renderLogs() {
+  const el = document.getElementById('logList');
+  if (!state.logs.length) {
+    el.innerHTML = '<div class="empty-state">💧<br>Abhi kuch nahi piya.<br>Pehla glass shuru karo!</div>';
+    return;
+  }
+  el.innerHTML = state.logs.slice(0, 20).map((l, i) => {
+    const icon = Object.entries(CONTAINER_ICONS).reduce((best, [ml, ic]) => {
+      return Math.abs(l.ml - parseInt(ml)) < Math.abs(l.ml - parseInt(best[0])) ? [ml, ic] : best;
+    }, ['250', '🥛'])[1];
+    return `
+      <div class="log-item">
+        <div class="log-icon">${icon}</div>
+        <div class="log-info">
+          <div class="log-amount">+${l.ml} ml</div>
+          <div class="log-time">${l.time}</div>
+        </div>
+        <button class="log-del" onclick="removeLog(${i})">✕</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function removeLog(i) {
+  state.total -= state.logs[i].ml;
+  state.total = Math.max(0, state.total);
+  state.logs.splice(i, 1);
+  save();
+  updateUI();
+}
+
+function resetToday() {
+  if (confirm('Aaj ka paani data delete karna chahte ho?')) {
+    state.total = 0;
+    state.logs = [];
+    save();
+    updateUI();
+  }
+}
+
+function updateGoal(v) {
+  state.goal = parseInt(v);
+  document.getElementById('goalDisplay').textContent = v + ' ml';
+  document.querySelectorAll('.goal-preset').forEach(b => b.classList.remove('active'));
+  save();
+  updateUI();
+}
+
+function setGoal(v) {
+  state.goal = v;
+  document.getElementById('goalSlider').value = v;
+  document.getElementById('goalDisplay').textContent = v + ' ml';
+  document.querySelectorAll('.goal-preset').forEach(b => {
+    b.classList.toggle('active', parseInt(b.textContent) === v);
+  });
+  save();
+  updateUI();
+}
+
+function renderWeekStats() {
+  const el = document.getElementById('weekStats');
+  if (!state.history.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Data aane do...</div>'; return; }
+  el.innerHTML = state.history.map(d => {
+    const pct = Math.min(d.total / d.goal * 100, 100);
+    const dateStr = new Date(d.date).toLocaleDateString('hi-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    return `
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:12px;color:var(--muted);min-width:70px">${dateStr}</span>
+        <div style="flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${pct >= 100 ? '#4ade80' : 'var(--accent)'};border-radius:4px"></div>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:${pct >= 100 ? '#4ade80' : 'var(--accent2)'};min-width:50px;text-align:right">${d.total}ml</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// NAV
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById('view-' + item.dataset.view).classList.add('active');
+    if (item.dataset.view === 'settings') renderWeekStats();
+  });
+});
+
+// THEME
+const savedTheme = localStorage.getItem('jal-theme') || 'dark';
+document.body.dataset.theme = savedTheme;
+document.getElementById('themeBtn').textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const t = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.body.dataset.theme = t;
+  document.getElementById('themeBtn').textContent = t === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('jal-theme', t);
+});
+
+document.getElementById('goalSlider').value = state.goal;
+document.getElementById('goalDisplay').textContent = state.goal + ' ml';
+updateUI();
+</script>
 </body>
 </html>
-
-
